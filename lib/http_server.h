@@ -15,7 +15,7 @@ struct HttpServer {
     struct DataIO data_io_module;
 };
 
-inline struct HttpServer* get_http_server(int port) {
+struct HttpServer* get_http_server(int port) {
     // malloc an http server.
     // construct and init modules
     // starts the http server 
@@ -24,7 +24,7 @@ inline struct HttpServer* get_http_server(int port) {
     return NULL;
 }
 
-inline bool process_message(char message[]) {
+bool process_message(char message[]) {
     // Call the HTTP parser module
     // If parse failed, reject the message with the proper HTTP response and status code using HTTP builder module and network IO module.
     // If parse succeed, continue on.
@@ -36,14 +36,6 @@ inline bool process_message(char message[]) {
     
     // Take the data and send the HTTP response along with the data using HTTP builder module and network IO module.
     return false;
-}
-
-inline void run(struct HttpServer* http_server) {
-    while (true) {
-        // Poll from the socket set of the network io module
-        // Do a recv() from an available file descriptor
-        // Process the message
-    }
 }
 
 #endif

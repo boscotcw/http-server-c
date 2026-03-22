@@ -1,0 +1,28 @@
+#!/bin/bash
+
+directory="./tests/bin"
+
+if [ ! -d "$directory" ]; then 
+    echo "Directory not found. Please put your tests in ./tests/bin and run this script at project root."
+    exit 1
+fi
+
+if [ ! -f "./tests/makefile" ]; then 
+    echo "makefile not found. Please put your makefile in ./tests."
+    exit 1
+fi
+
+make all -C "$directory/.."
+if [ ! $? -eq 0 ]; then
+    echo "Compilation unsuccesful."
+    exit 1
+fi
+echo "Compilation of tests successful."
+
+
+for file in "$directory"/*; do
+    if [ -f "$file" ]; then 
+        echo "Running test: $file"
+        "$file"
+    fi
+done

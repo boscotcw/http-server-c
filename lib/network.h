@@ -2,18 +2,19 @@
 #define NETWORK_IO_MODULE_H
 
 #include "http_parser.h"
+#include <stdbool.h>
 #include <string.h>
 
 // Maybe put into parser module?
-static const int G_MAX_METHOD_LEN = 6; // GET, POST, PUT, DELETE
-static const int G_SP_LEN = 1;
+const int G_MAX_METHOD_LEN = 6; // GET, POST, PUT, DELETE
+const int G_SP_LEN = 1;
 
-static const int G_MAX_CLIENT_SOCKETS = 1;
-static const int G_NUM_LISTENING_SOCKETS = 1; // Always 1 in TCP sockets.
-static const int G_MAX_SOCKETS = G_MAX_CLIENT_SOCKETS + G_NUM_LISTENING_SOCKETS;
+const int G_MAX_CLIENT_SOCKETS = 1;
+const int G_NUM_LISTENING_SOCKETS = 1; // Always 1 in TCP sockets.
+const int G_MAX_SOCKETS = G_MAX_CLIENT_SOCKETS + G_NUM_LISTENING_SOCKETS;
 
-static const int G_BUFFER_SCALING_FACTOR = 2;
-static const int G_MAX_BUFFER_SIZE =
+const int G_BUFFER_SCALING_FACTOR = 2;
+const int G_MAX_BUFFER_SIZE =
     (G_MAX_METHOD_LEN + G_SP_LEN + G_MAX_URI_LEN) * G_BUFFER_SCALING_FACTOR;
 
 struct Connection {
@@ -30,6 +31,15 @@ struct NetworkIO {
   struct Connection connections[G_MAX_SOCKETS];
 };
 
+
+void run(struct NetworkIO* network_io_module) {
+    // start listening for connections
+    while (true) {
+        // Poll from the socket set of the network io module
+        // Do a recv() from an available file descriptor
+        // Process the message
+    }
+}
 
 // TODO: Add connection, remove connection.
 // Interesting fact about remove connection: normally, after a HTTP response,

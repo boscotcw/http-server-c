@@ -2,17 +2,20 @@
 #define HTTP_PARSER_H
 
 #include <assert.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-static const char SP = ' ';
+// Max URI length is not specified in RFC, so it seems we have freedom
+// to choose it. Common maximum is 2000-2048 bytes, however in our toy
+// project, we go lower.
+#define G_MAX_URI_LEN 1024
 
-static const int G_REQUEST_LINE_NUM_TOKENS = 2; // Defined by HTTP/0.9 RFC.
-static const int G_MAX_URI_LEN =
-    1024; // Max URI length is not specified in RFC, so it seems we have freedom
-          // to choose it. Common maximum is 2000-2048 bytes, however in our toy
-          // project, we go lower.
+const char SP = ' ';
+
+// Defined by HTTP/0.9 RFC.
+const int G_REQUEST_LINE_NUM_TOKENS = 2;
 
 enum HttpParseState { PARSING_GET, PARSING_REQUEST_URI, PARSING_FINISHED };
 
@@ -27,7 +30,7 @@ struct HttpParser {
  * @brief Simple-Request  = "GET" SP Request-URI CRLF
  */
 struct HttpSimpleRequest {
-  char request_uri[G_MAX_URI_LEN +
+  char request_uri[1024 +
                    1]; // request_uri is a null-terminated string, hence the +1.
                        // TODO: Change to pointer and heap-allocated C-string.
                        // This is memory-wasteful.
@@ -46,9 +49,9 @@ struct HttpSimpleRequest {
  * http_simple_request may still contain partial values, and should not be used
  * as not all values are initialised. Doing so leads to undefined behaviour.
  */
-inline bool parse_simple_request(struct HttpParser *http_parser,
-                                 struct HttpSimpleRequest *http_simple_request,
-                                 char request[]) {
+bool parse_simple_request(struct HttpParser *http_parser,
+                          struct HttpSimpleRequest *http_simple_request,
+                          char request[]) {
   char *token;
 
   char delimiters[] = {SP};
@@ -65,25 +68,29 @@ inline bool parse_simple_request(struct HttpParser *http_parser,
 
     switch (http_parser->state) {
     case PARSING_GET:
-      if (strcmp(token, "GET")) {
+      if (strcmp(token, "GET") != 0) {
+        printf("[Error] GET token not found while parsing request into "
+               "Simple-Request.\n");
         return false;
       }
       http_parser->state = PARSING_REQUEST_URI;
       break;
     case PARSING_REQUEST_URI:
       if (strlen(token) > G_MAX_URI_LEN) {
+        printf("[Error] URI exceeded G_MAX_URI_LEN: %d. Current URI length: %d", G_MAX_URI_LEN, strlen(token));
         return false;
       }
       strcpy(http_simple_request->request_uri, token);
+
       http_parser->state = PARSING_FINISHED;
       break;
     default:
-      printf("Unknown http_parser->state while parsing request into "
-             "Simple-Request.\n");
+      printf(
+          "[Error] Unknown state while parsing request into Simple-Request.\n");
       return false;
     }
 
-    token = strtok(NULL, " ");
+    token = strtok(NULL, delimiters);
   }
 
   return http_parser->state == PARSING_FINISHED;
