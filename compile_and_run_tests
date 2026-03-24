@@ -19,10 +19,11 @@ if [ ! $? -eq 0 ]; then
 fi
 echo "Compilation of tests successful."
 
-
-for file in "$directory"/*; do
-    if [ -f "$file" ]; then 
-        echo "Running test: $file"
-        "$file"
-    fi
-done
+if "$1"; then
+    for file in "$directory"/*; do
+        if [ -f "$file" ]; then 
+            echo "Running test: $file"
+            "$file"
+        fi
+    done
+fi

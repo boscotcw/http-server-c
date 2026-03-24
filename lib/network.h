@@ -126,7 +126,9 @@ void run(struct NetworkIO *network_io_module) {
     for (int i = 0; i < num_ready_fds; ++i) {
       if (epoll_events[i].data.fd == listen_socket) {
         struct sockaddr_in client_addr;
+
         socklen_t client_addr_len;
+
         int client_connection_socket = accept(
             listen_socket, (struct sockaddr *)&client_addr, &client_addr_len);
         if (client_connection_socket == -1) {
@@ -150,16 +152,18 @@ void run(struct NetworkIO *network_io_module) {
 
       } else {
         // TODO: remove this mock code:
-        const int MAX_BUFFER_SIZE = 1024;
-        char client_message[MAX_BUFFER_SIZE];
+        char client_message[G_MAX_BUFFER_SIZE + 1] = "";
 
-        char buffer[MAX_BUFFER_SIZE];
+        char buffer[G_MAX_BUFFER_SIZE + 1];
+
         // Non-blocking recv.
         while (true) {
           ssize_t num_bytes =
-              recv(epoll_events[i].data.fd, buffer, MAX_BUFFER_SIZE, 0);
+              recv(epoll_events[i].data.fd, buffer, G_MAX_BUFFER_SIZE, 0);
 
           printf("num_bytes from client: %ld\n", num_bytes);
+
+          buffer[num_bytes] = '\0';
 
           if (num_bytes > 0) {
             strcat(client_message, buffer);
@@ -171,11 +175,10 @@ void run(struct NetworkIO *network_io_module) {
           }
         }
 
-        strcat(client_message, "\0"); // additional null termination for safety
         printf("[server] client message received: %s\n", client_message);
 
         // Non-blocking send.
-        const char some_message[] = "Hello and received!";
+        const char some_message[] = "Hello and received!\n";
         send(epoll_events[i].data.fd, some_message, sizeof(some_message), 0);
 
         // handle existing client connection
