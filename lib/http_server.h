@@ -15,6 +15,12 @@ struct HttpServer {
     struct DataIO data_io_module;
 };
 
+/*
+ * @brief Since the HttpServer is hardcoded to use localhost,
+ * only port is required to be passed in.
+ *
+ * @param port A free port in the range: [ x - x ]
+ */
 struct HttpServer* get_http_server(int port) {
     // malloc an http server.
     // construct and init modules
@@ -24,18 +30,8 @@ struct HttpServer* get_http_server(int port) {
     return NULL;
 }
 
-bool process_message(char message[]) {
-    // Call the HTTP parser module
-    // If parse failed, reject the message with the proper HTTP response and status code using HTTP builder module and network IO module.
-    // If parse succeed, continue on.
-
-    // Take the parsed message and pass it on to the data IO module.
-    // Wait for the data.
-    // If data get failed, reject the message with the proper HTTP response and status code using HTTP builder module and network IO module.
-    // If data get succeed, continue on.
-    
-    // Take the data and send the HTTP response along with the data using HTTP builder module and network IO module.
-    return false;
+void free_http_server(struct HttpServer* http_server) {
+   
 }
 
 #endif
