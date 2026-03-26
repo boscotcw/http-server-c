@@ -2,21 +2,12 @@
 #define NETWORK_IO_MODULE_H
 
 #include "http_parser.h"
-#include <asm-generic/errno-base.h>
-#include <asm-generic/errno.h>
+#include "network_helpers.h"
 #include <err.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
 
 #define G_MAX_CLIENT_SOCKETS                                                   \
   1000 // This should always be greater than 5, since (usually) the first
@@ -55,6 +46,9 @@ struct NetworkIO {
 
 /*
  * @brief Initialises a NetworkIO module.
+ *
+ * @param network_io_module Pointer to caller-created NetworkIO object.
+ * @param port A free port in the range: [49152-65535].
  */
 void init_network_io(struct NetworkIO *network_io_module, int port) {
   network_io_module->num_sockets = G_NUM_LISTENING_SOCKETS;
@@ -64,23 +58,11 @@ void init_network_io(struct NetworkIO *network_io_module, int port) {
   network_io_module->port = port;
 }
 
-int set_non_blocking(int fd) {
-  int flags = fcntl(fd, F_GETFL, 0);
-  if (flags == -1) {
-    perror("fcntl(F_GETFL)");
-    return -1;
-  }
-
-  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-    perror("fcntl(F_SETFL)");
-    return -1;
-  }
-
-  return 0;
-}
-
 /*
- * @brief Crashes if any step of the server socket setup fails.
+ * @brief Crashes if any step of the server socket setup fails. Please ensure
+ * the NetworkIO object is properly initialised via init_network_io.
+ *
+ * @param network_io_module Pointer to caller-created NetworkIO object.
  */
 void start_listening(struct NetworkIO *network_io_module) {
   // This is a TCP socket: https://man7.org/linux/man-pages/man7/ip.7.html

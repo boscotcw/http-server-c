@@ -5,11 +5,26 @@
 #include "http_builder.h"
 #include "http_parser.h"
 #include "network.h"
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
+/*
+ * @brief The HttpServer will follow the pipeline:
+ * network IO (receiving)
+ * -> HTTP request parsing
+ * -> data IO
+ * -> HTTP response building
+ * -> network IO (sending)
+ */
 struct HttpServer {
   struct NetworkIO network_io_module;
   struct HttpParser http_parser_module;
@@ -18,10 +33,14 @@ struct HttpServer {
 };
 
 /*
- * @brief Since the HttpServer is hardcoded to use localhost,
- * only port is required to be passed in.
+ * @brief It is recommended to use this instead of creating your own HttpServer
+ * object to ensure modules are properly initialised. Since the HttpServer is
+ * hardcoded to use localhost, only port is required to be passed in.
  *
- * @param port A free port in the range: [ x - x ]
+ * @param port A free port in the range: [49152-65535]
+ *
+ * @returns Dynamically allocated HttpServer. Remember to call
+ * free_http_server for cleanup.
  */
 struct HttpServer *get_http_server(int port) {
   struct HttpServer *http_server;
@@ -33,24 +52,32 @@ struct HttpServer *get_http_server(int port) {
   return http_server;
 }
 
-void process_connection_buffer(struct Connection *connection) {
-  for (int i = connection->check_offset; i < G_MAX_BUFFER_SIZE - 1; ++i) {
-    if (connection->buffer[i] == '\r' && connection->buffer[i + 1] == '\n') {
-      // complete!
-      // We want from 0 to i-1 (remove CLRF)
-
-      // make sure that i-1 >= 0.
-      // Then null terminate.
-      // Then memmove the rest of the array to overwrite 0 to i + 1.
-    }
-  }
-}
-
+/*
+ * @brief Cleanup function for an HttpServer object.
+ *
+ * @param Pointer to the caller-created HttpServer object.
+ */
 void free_http_server(struct HttpServer *http_server) {
   free(http_server);
   http_server = NULL;
 }
 
+void process_connection_buffer(struct Connection *connection) {
+  for (int i = connection->check_offset; i < G_MAX_BUFFER_SIZE - 1; ++i) {
+    if (connection->buffer[i] == '\r' && connection->buffer[i + 1] == '\n') {
+      // TODO.
+      err(EXIT_FAILURE, "UNIMPLEMENTED FUNCTION");
+    }
+  }
+}
+
+/*
+ * @brief After getting an HttpServer via get_http_server, call this to start
+ * listening and kickstart the processing pipeline. Note that this is a blocking
+ * function call.
+ *
+ * @param http_server Pointer to the caller-created HttpServer object.
+ */
 void run_http_server(struct HttpServer *http_server) {
   start_listening(&http_server->network_io_module);
 

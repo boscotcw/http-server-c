@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 // Max URI length is not specified in RFC, so it seems we have freedom
@@ -78,8 +77,9 @@ bool parse_simple_request(struct HttpParser *http_parser,
       break;
     case PARSING_REQUEST_URI:
       if (strlen(token) > G_MAX_URI_LEN) {
-        printf("[Error] URI exceeded G_MAX_URI_LEN: %d. Current URI length: %lu",
-               G_MAX_URI_LEN, strlen(token));
+        printf(
+            "[Error] URI exceeded G_MAX_URI_LEN: %d. Current URI length: %lu",
+            G_MAX_URI_LEN, strlen(token));
         return false;
       }
       strcpy(http_simple_request->request_uri, token);
