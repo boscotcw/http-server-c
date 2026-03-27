@@ -190,6 +190,7 @@ void run_http_server(struct HttpServer *http_server) {
     int num_ready_fds = epoll_wait(epoll_fd, epoll_events, G_MAX_SOCKETS, -1);
     printf("Event received. Processing batch of ready fds...\n");
 
+    // TODO: Change to less aggressive error handling here.
     if (num_ready_fds == -1) {
       err(EXIT_FAILURE, "epoll_wait failed");
     }
@@ -202,6 +203,7 @@ void run_http_server(struct HttpServer *http_server) {
 
         int client_connection_socket = accept(
             listen_socket, (struct sockaddr *)&client_addr, &client_addr_len);
+        // TODO: Change to less aggressive error handling here.
         if (client_connection_socket == -1) {
           err(EXIT_FAILURE, "failed to accept a client_connection_socket");
         }
@@ -229,6 +231,7 @@ void run_http_server(struct HttpServer *http_server) {
         epoll_event.events = EPOLLIN | EPOLLET;
         epoll_event.data.fd = client_connection_socket;
 
+        // TODO: Change to less aggressive error handling here.
         if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_connection_socket,
                       &epoll_event) == -1) {
           err(EXIT_FAILURE, "epoll_ctl failed for client_connection_socket");
@@ -305,9 +308,12 @@ void run_http_server(struct HttpServer *http_server) {
 
                   assert(false && "UNIMPLEMENTED PATH");
                   // TODO: cleanup (reduce num_sockets, clear connection buffer, close socket)
+
+                  message_available = false;
                   break;
               }
           } else if (num_bytes == 0) {
+            // TODO: refactor as cleanup client function so that above error case can also use it
             http_server->network_io_module.num_sockets -= 1;
 
             assert(http_server->network_io_module.num_sockets >= 1);
