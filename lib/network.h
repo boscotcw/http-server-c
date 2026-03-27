@@ -90,9 +90,9 @@ void start_listening(struct NetworkIO *network_io_module) {
   // restriction.
   struct sockaddr_in server_addr = {.sin_family = AF_INET,
                                     .sin_port = htons(network_io_module->port),
-                                    .sin_addr = htonl(INADDR_LOOPBACK)};
+                                    .sin_addr.s_addr = INADDR_ANY};
 
-  printf("Note: currently hardcoded to using loopback address.\n");
+  // printf("Note: currently hardcoded to using loopback address.\n");
 
   if (bind(listen_socket, (struct sockaddr *)&server_addr,
            sizeof(server_addr)) == -1) {
