@@ -15,6 +15,7 @@
  */
 struct Connection {
   char buffer[G_MAX_BUFFER_SIZE];
+  int buffer_size;
   int check_offset; // This offset (suggested by Gemini) is used to avoid wasted
                     // linear scans to find the first available CLRF.
   int write_offset;

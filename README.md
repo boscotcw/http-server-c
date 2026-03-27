@@ -39,4 +39,7 @@ Things I want to cover:
 - `select` vs `poll` vs `epoll`?
 - `strncmp` vs `strcmp`
 - Why always pass in pointers of caller-created objects into functions? 
-- 
+
+## TODOs/edge cases to consider
+- What if the user sends a lot of superfluous \n or \r characters in their message/uri? Should we strip them away?
+- What if the user sends multiple (like a lot) of \r\n (i.e. CLRFCLRFCLRFCLRF...)? We only find the first CLRF. Should we clear them as well? Otherwise, it will be found as CLRF in the next iteration, but then passed onto `parse_simple_request` as an *empty* HTTP request... then we of course reject them.

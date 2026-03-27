@@ -5,17 +5,16 @@
 #include "http_builder.h"
 #include "http_parser.h"
 #include "network.h"
+#include "network_definitions.h"
 #include <errno.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 /*
  * @brief The HttpServer will follow the pipeline:
@@ -46,7 +45,10 @@ struct HttpServer *get_http_server(int port) {
   struct HttpServer *http_server;
   http_server = malloc(sizeof(*http_server));
 
+  // Init does NOT mean it starts listening. The HTTP server is STILL in a idle
+  // state.
   init_network_io(&http_server->network_io_module, port);
+
   // TODO more inits here...
 
   return http_server;
@@ -64,13 +66,78 @@ void free_http_server(struct HttpServer *http_server) {
   http_server = NULL;
 }
 
-void process_connection_buffer(struct Connection *connection) {
-  for (int i = connection->check_offset; i < G_MAX_BUFFER_SIZE - 1; ++i) {
+void process_connection_buffer(struct HttpServer *http_server,
+                               struct Connection *connection) {
+  printf("Processing connection buffer: %.*s\n", connection->buffer_size,
+         connection->buffer);
+  printf("Size: %d\n", connection->buffer_size);
+
+  printf("Starting check from check_offset: %d\n", connection->check_offset);
+
+  int i = connection->check_offset;
+  for (; i < connection->buffer_size - 1; ++i) {
+    // We define the message boundary as "CLRF" for HTTP/0.9.
+    printf("Checking: %c%c\n", connection->buffer[i],
+           connection->buffer[i + 1]);
     if (connection->buffer[i] == '\r' && connection->buffer[i + 1] == '\n') {
-      // TODO.
-      err(EXIT_FAILURE, "UNIMPLEMENTED FUNCTION");
+      printf("CLRF found!\n");
+
+      int request_len = i;
+      printf("Request length excluding 2 bytes from CLRF: %d\n", request_len);
+
+      if (request_len >= 0) {
+        // This must be null-terminated.
+        char request_buffer[request_len + 1];
+
+        memcpy(request_buffer, connection->buffer, request_len);
+
+        request_buffer[request_len] = '\0';
+        printf("Request buffer extracted: %s\n", request_buffer);
+
+        // Check if we can correctly shift from the part after '\r\n'
+        // next_message_start_idx is same as the request_buffer plus two bytes
+        // for CLRF
+        const int next_message_start_idx = request_len + 2;
+
+        if (next_message_start_idx <= G_MAX_BUFFER_SIZE - 1) {
+          memmove(&connection->buffer[0],
+                  &connection->buffer[next_message_start_idx],
+                  connection->buffer_size - next_message_start_idx + 1);
+          memset(&connection->buffer[next_message_start_idx], 0,
+                 connection->buffer_size - next_message_start_idx + 1);
+
+          connection->buffer_size -= next_message_start_idx;
+        } else {
+          assert(false && "unreachable case: a single HTTP message occupied "
+                          "the entire connection buffer");
+          // memset(&connection->buffer, 0, G_MAX_BUFFER_SIZE);
+        }
+
+        printf("Connection buffer after shifting: %.*s\n",
+               connection->buffer_size, connection->buffer);
+        printf("Size after shifting: %d\n", connection->buffer_size);
+
+        // Whenever we "popped" the buffer, we will restart from 0.
+        connection->check_offset = 0;
+
+        struct HttpSimpleRequest http_simple_request = {0};
+
+        // TODO: return this to main loop
+        if (parse_simple_request(&http_server->http_parser_module,
+                                 &http_simple_request, request_buffer)) {
+          printf("http_simple_request parsed: %s\n",
+                 http_simple_request.request_uri);
+        } else {
+          printf("http_simple_request parsing rejected.\n");
+        }
+      }
+
+      return;
     }
   }
+
+  connection->check_offset = i;
+  printf("No complete potential HTTP message found.\n");
 }
 
 /*
@@ -80,6 +147,7 @@ void process_connection_buffer(struct Connection *connection) {
  *
  * @param http_server Pointer to the caller-created HttpServer object.
  */
+// TODO: Refactor this shit
 void run_http_server(struct HttpServer *http_server) {
   start_listening(&http_server->network_io_module);
 
@@ -153,8 +221,10 @@ void run_http_server(struct HttpServer *http_server) {
         }
         printf("Registered new client to epoll instance.\n");
 
-        struct Connection client_connection = {
-            .buffer = {}, .check_offset = 0, .write_offset = 0};
+        struct Connection client_connection = {.buffer = {},
+                                               .buffer_size = 0,
+                                               .check_offset = 0,
+                                               .write_offset = 0};
 
         http_server->network_io_module.connections[client_connection_socket] =
             client_connection;
@@ -196,6 +266,8 @@ void run_http_server(struct HttpServer *http_server) {
               client_connection->buffer[client_connection->write_offset + i] =
                   recv_buffer[i];
             }
+            client_connection->buffer_size += num_bytes;
+
             printf("Appended recv_buffer to connection buffer.\n");
 
             // TODO: Refactor as a "append" function. This is way too ugly.
@@ -214,8 +286,10 @@ void run_http_server(struct HttpServer *http_server) {
 
             assert(http_server->network_io_module.num_sockets >= 1);
 
-            struct Connection empty_connection = {
-                .buffer = {}, .write_offset = 0, .check_offset = 0};
+            struct Connection empty_connection = {.buffer = {},
+                                                  .buffer_size = 0,
+                                                  .write_offset = 0,
+                                                  .check_offset = 0};
 
             *client_connection = empty_connection;
 
@@ -232,6 +306,8 @@ void run_http_server(struct HttpServer *http_server) {
             break;
           }
         }
+
+        process_connection_buffer(http_server, client_connection);
       }
     }
   }

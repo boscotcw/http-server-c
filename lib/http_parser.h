@@ -13,7 +13,7 @@ enum HttpParseState { PARSING_GET, PARSING_REQUEST_URI, PARSING_FINISHED };
  * @brief HttpParser is modelled as a finite state machine.
  */
 struct HttpParser {
-  enum HttpParseState state; // Unitialized "initial" state.
+  enum HttpParseState state; // Uninitialized "initial" state.
 };
 
 /*
@@ -57,6 +57,8 @@ bool parse_simple_request(struct HttpParser *http_parser,
       return false;
     }
 
+    unsigned long token_len = strlen(token);
+
     switch (http_parser->state) {
     case PARSING_GET:
       if (strcmp(token, "GET") != 0) {
@@ -67,14 +69,18 @@ bool parse_simple_request(struct HttpParser *http_parser,
       http_parser->state = PARSING_REQUEST_URI;
       break;
     case PARSING_REQUEST_URI:
-      if (strlen(token) > G_MAX_URI_LEN) {
+      if (token_len > G_MAX_URI_LEN) {
         printf(
             "[Error] URI exceeded G_MAX_URI_LEN: %d. Current URI length: %lu",
-            G_MAX_URI_LEN, strlen(token));
+            G_MAX_URI_LEN, token_len);
+        return false;
+      } else if (token_len <= 0) {
+        printf("[Error] URI does not have positive length. Current URI length: "
+               "%lu",
+               token_len);
         return false;
       }
       strcpy(http_simple_request->request_uri, token);
-
       http_parser->state = PARSING_FINISHED;
       break;
     default:
