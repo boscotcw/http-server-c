@@ -50,6 +50,8 @@ Things I want to cover:
 - Async engine for the `DataIO` module. This is quite big, since it requires the entire `HttpServer` to maintain state for each connection. In other words, the entire `HttpServer` needs to be re-designed to become a more sophisticated state machine.
 
 ## Learning notes
+These are a collection of C/Linux based notes I found interesting, coming from a more OOP/high-level language background.
+
 - Why use preprocessor macros instead of `const`?
 - `select` vs `poll` vs `epoll`? How about the `pselect`, `ppoll` alternatives?
 - `strncmp` vs `strcmp`? How to deal with non-null-terminated strings?
@@ -62,3 +64,5 @@ Things I want to cover:
 - What if the user sends a lot of superfluous \n or \r characters in their message/uri? Should we strip them away?
 - What if the user sends multiple (like a lot) of \r\n (i.e. CLRFCLRFCLRFCLRF...)? We only find the first CLRF. Should we clear them as well? Otherwise, it will be found as CLRF in the next iteration, but then passed onto `parse_simple_request` as an _empty_ HTTP request... then we of course reject them.
 - Check for any potential memory leaks.
+- Test with 1000+ concurrent clients.
+- Write a nice testing framework to help with the above point.
