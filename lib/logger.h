@@ -16,67 +16,14 @@ enum LogLevel {
 };
 
 struct Logger {
-  bool generateLogFile;
+  bool generate_log_file;
   char log_filename[LOG_FILENAME_MAX_LENGTH];
-  int verbosity;
+  enum LogLevel verbosity;
 };
-
-void generate_log(struct Logger logger, const char message[], int verbosity) {
-  // Generate & print a log entry with a timestamp & message. 
-  // Optionally write the log entry to a file if logger is configured to do so.
-  if (verbosity < logger.verbosity) return; 
-  
-  time_t now;
-  char time_buf[32];
-  time(&now);
-  struct tm* time_info = localtime(&now);
-  strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", time_info);
-  char log_entry[LOG_ENTRY_MAX_LENGTH];
-  snprintf(log_entry, sizeof(log_entry), "[%s] \t%s\n", time_buf, message);
-  printf("%s", log_entry);
-
-  if (!logger.generateLogFile) return;
-  // Write the log entry to a file
-  write_log_file(logger, log_entry);
-}
-
-void log_info(struct Logger logger, const char message[]) {
-  generate_log(logger, message, INFO);
-}
-
-void log_debug(struct Logger logger, const char message[]) {
-  generate_log(logger, message, DEBUG);
-}
-
-struct Logger create_logger(int verbosity, 
-                            bool generateLogFile, 
-                            const char* log_filename) {
-/*
- * Creates a Logger with the configured verbosity and file-output behavior.
- * @param verbosity Minimum log level to emit (messages with level >= verbosity are logged).
- * @param generateLogFile If true, log entries are also appended to a file.
- * @param log_filename Filename to use when generateLogFile is true; if NULL, a default timestamp-based name is used.
- */
-  struct Logger logger;
-  logger.generateLogFile = generateLogFile;
-  if (generateLogFile) {
-    if (log_filename == NULL) {
-      // Set to default log filename with timestamp
-      time_t now;
-      time(&now);
-      struct tm* time_info = localtime(&now);
-      strftime(logger.log_filename, sizeof(logger.log_filename), "log_%Y-%m-%d %H%M%S.log", time_info);
-    } else {
-      snprintf(logger.log_filename, sizeof(logger.log_filename), "%s", log_filename);
-    }
-  }
-  logger.verbosity = verbosity;
-  return logger;
-}
 
 void write_log_file(struct Logger logger, const char log_entry[]) {
   // Writes log entry to a file.
-  if (!logger.generateLogFile) return; // Double check if log file generation is enabled
+  if (!logger.generate_log_file) return; // Double check if log file generation is enabled
 
   // The slow way: Open the file, write the log entry, and close the file for each message.
   FILE* log_file = fopen(logger.log_filename, "a");
@@ -93,6 +40,60 @@ void write_log_file(struct Logger logger, const char log_entry[]) {
   fflush(log_file); // Ensure the log entry is written to the file immediately
   fclose(log_file);
 }
+
+void generate_log(struct Logger logger, const char message[], enum LogLevel log_level) {
+  // Generate & print a log entry with a timestamp & message. 
+  // Optionally write the log entry to a file if logger is configured to do so.
+  if (log_level < logger.verbosity) return; 
+  
+  time_t now;
+  char time_buf[32];
+  time(&now);
+  struct tm* time_info = localtime(&now);
+  strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", time_info);
+  char log_entry[LOG_ENTRY_MAX_LENGTH];
+  snprintf(log_entry, sizeof(log_entry), "[%s] \t%s\n", time_buf, message);
+  printf("%s", log_entry);
+
+  if (!logger.generate_log_file) return;
+  // Write the log entry to a file
+  write_log_file(logger, log_entry);
+}
+
+void log_info(struct Logger logger, const char message[]) {
+  generate_log(logger, message, INFO);
+}
+
+void log_debug(struct Logger logger, const char message[]) {
+  generate_log(logger, message, DEBUG);
+}
+
+struct Logger create_logger(enum LogLevel verbosity, 
+                            bool generate_log_file, 
+                            const char* log_filename) {
+/*
+ * Creates a Logger with the configured verbosity and file-output behavior.
+ * @param verbosity Minimum log level to emit (messages with level >= verbosity are logged).
+ * @param generate_log_file If true, log entries are also appended to a file.
+ * @param log_filename Filename to use when generate_log_file is true; if NULL, a default timestamp-based name is used.
+ */
+  struct Logger logger;
+  logger.generate_log_file = generate_log_file;
+  if (generate_log_file) {
+    if (log_filename == NULL) {
+      // Set to default log filename with timestamp
+      time_t now;
+      time(&now);
+      struct tm* time_info = localtime(&now);
+      strftime(logger.log_filename, sizeof(logger.log_filename), "log_%Y-%m-%d %H%M%S.log", time_info);
+    } else {
+      snprintf(logger.log_filename, sizeof(logger.log_filename), "%s", log_filename);
+    }
+  }
+  logger.verbosity = verbosity;
+  return logger;
+}
+
 
 
 #endif
