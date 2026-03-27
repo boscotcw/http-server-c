@@ -1,0 +1,6 @@
+#ifndef DATA_DEFINITIONS_H
+#define DATA_DEFINITIONS_H
+
+#define G_MAX_FILE_READ_SIZE 1024
+
+#endif 

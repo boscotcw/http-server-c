@@ -2,6 +2,7 @@
 #define HTTP_SERVER_H
 
 #include "data.h"
+#include "data_definitions.h"
 #include "http_builder.h"
 #include "http_helpers.h"
 #include "http_parser.h"
@@ -51,6 +52,8 @@ struct HttpServer *get_http_server(int port) {
   init_network_io(&http_server->network_io_module, port);
 
   init_http_parser(&http_server->http_parser_module);
+
+  init_data_io(&http_server->data_io_module);
 
   // TODO more inits here...
 
@@ -322,13 +325,28 @@ void run_http_server(struct HttpServer *http_server) {
         // TODO: While true check here. This is a design tradeoff.
         if (message_available) {
           struct HttpSimpleRequest http_simple_request = {0};
+          char data_buffer[G_MAX_FILE_READ_SIZE] = {0};
 
           while (client_connection->buffer_size > 0) {
             process_connection_buffer(http_server, client_connection,
                                       &http_simple_request);
             print_http_simple_request(&http_simple_request);
+
+            memset(data_buffer, 0,
+                   sizeof(data_buffer)); // Ensure a clean data buffer
+            size_t num_bytes =
+                get_file_data(data_buffer, http_simple_request.request_uri);
+
+            if (num_bytes != -1) {
+              printf("Sending file data to client...\n");
+              send(client_connection_socket, data_buffer, num_bytes, 0);
+            } else {
+              fprintf(stderr, "Failed to get file data.\n");
+            }
           }
         }
+
+        // TODO: Close client connection and remove from connection pool!
       }
     }
   }
