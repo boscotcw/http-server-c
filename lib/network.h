@@ -10,6 +10,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+/*
+ * @brief A connection metadata object to track a client.
+ */
 struct Connection {
   char buffer[G_MAX_BUFFER_SIZE];
   int check_offset; // This offset (suggested by Gemini) is used to avoid wasted
@@ -73,10 +76,11 @@ void start_listening(struct NetworkIO *network_io_module) {
   }
   printf("Set socket options to re-use address and re-use port.\n");
 
-  // Using designated initializers will automatically zero out paddings, so we
-  // don't need to memset to 0.
   assert(network_io_module->port >= 49152 && network_io_module->port <= 65535 &&
          "please use a port in the range [49152-65535].");
+
+  // Using designated initializers will automatically zero out paddings, so we
+  // don't need to memset to 0.
   // TODO: Expand to public application and replace loopback address
   // restriction.
   struct sockaddr_in server_addr = {.sin_family = AF_INET,

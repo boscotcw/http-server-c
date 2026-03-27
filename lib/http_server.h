@@ -58,6 +58,8 @@ struct HttpServer *get_http_server(int port) {
  * @param Pointer to the caller-created HttpServer object.
  */
 void free_http_server(struct HttpServer *http_server) {
+  // TODO: free any other heap allocated objects here...
+
   free(http_server);
   http_server = NULL;
 }

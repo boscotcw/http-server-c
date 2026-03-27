@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 enum HttpParseState { PARSING_GET, PARSING_REQUEST_URI, PARSING_FINISHED };
 
 /*
