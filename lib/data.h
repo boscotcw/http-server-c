@@ -48,8 +48,8 @@ size_t get_file_data(char data_buffer[], char request_uri[]) {
     fprintf(stderr, "Invalid request URI: unathorized uri access.\n");
     return -1;
   }
-   
-  char relative_file_path[] = "allowed_files/";
+
+  char relative_file_path[] = "public/";
   strcat(relative_file_path, request_uri);
 
   FILE *file_handle = fopen(relative_file_path, "r");

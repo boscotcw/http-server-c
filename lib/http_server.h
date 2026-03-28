@@ -34,21 +34,12 @@ struct HttpServer {
 };
 
 /*
- * @brief It is recommended to use this instead of creating your own HttpServer
- * object to ensure modules are properly initialised. Since the HttpServer is
- * hardcoded to use localhost, only port is required to be passed in.
+ * @brief Initialises a HttpServer object by properly initialising its modules.
  *
+ * @param http_server Pointer to caller-created HttpServer object. It is recommended to pass in a heap-allocated one.
  * @param port A free port in the range: [49152-65535]
- *
- * @returns Dynamically allocated HttpServer. Remember to call
- * free_http_server for cleanup.
  */
-struct HttpServer *get_http_server(int port) {
-  struct HttpServer *http_server;
-  // TODO: Perhaps allow the caller to set the memory, and we only initialize it (similar the init_module calls we have here)
-  // Apparently, this allows the caller to put it in BSS segment as a global static variable, avoiding our explicit malloc
-  http_server = malloc(sizeof(*http_server));
-
+void *init_http_server(struct HttpServer* http_server, int port) {
   // Init does NOT mean it starts listening. The HTTP server is STILL in a idle
   // state.
   init_network_io(&http_server->network_io_module, port);
@@ -57,7 +48,7 @@ struct HttpServer *get_http_server(int port) {
 
   init_data_io(&http_server->data_io_module);
 
-  // TODO more inits here...
+  // TODO: init http builder module once it is ready
 
   return http_server;
 }
@@ -68,8 +59,6 @@ struct HttpServer *get_http_server(int port) {
  * @param Pointer to the caller-created HttpServer object.
  */
 void free_http_server(struct HttpServer *http_server) {
-  // TODO: free any other heap allocated objects here...
-
   free(http_server);
   http_server = NULL;
 }
@@ -336,11 +325,8 @@ void run_http_server(struct HttpServer *http_server) {
                    "draining.\n");
             break;
           }
-
-
         }
 
-        // TODO: While true check here. This is a design tradeoff.
         if (message_available) {
           struct HttpSimpleRequest http_simple_request = {0};
           char data_buffer[G_MAX_FILE_READ_SIZE] = {0};
