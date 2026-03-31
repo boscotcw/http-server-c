@@ -5,18 +5,28 @@
 #define STRESS_TEST_LOG_ENTRIES 1000
 
 
-// TODO: Add more modularized tests for logger, including exception handling for overly long log messages, illegal filenames, and multiple loggers writing to the same log file. 
-void test_logger_illegal_filename() {
-  // WIP: add exception handling for illegal filenames in create_logger.
-  return; // Skipped for now
+// TODO: Add more modularized tests for logger, 
+//       including exception handling for overly long log messages, 
+//       illegal filenames, and multiple loggers writing to the same log file. 
+//       We can revise object implementation (change create_logger() return type to pointer), 
+//       but this should most likely be done in tandem with proper memory management of said pointers, 
+//       which is currently not implemented due to it being treated and used as a stack variable. 
 
-  // printf("Running test_logger_illegal_filename.\n");
+void test_logger_too_long_filename() {
+  // WIP: add exception handling for overly long filenames in create_logger.
+  // return; // Skipped for now
 
-  // char illegal_filename[] = "test_illegal_filename?"; 
-  // printf("An error should be triggered during logger creation.\n");
-  // struct Logger logger = create_logger(INFO, true, true, illegal_filename);
+  printf("Running test_logger_too_long_filename.\n");
 
-  // print_test_passed();
+  char too_long_filename[LOG_FILENAME_MAX_LENGTH + 1];  // 1 character too long
+  memset(too_long_filename, 'a', LOG_FILENAME_MAX_LENGTH);
+  too_long_filename[LOG_FILENAME_MAX_LENGTH] = '\0';
+  struct Logger logger = create_logger(INFO, true, true, too_long_filename);
+  // logger should fall back to default timestamp-based filename generation.
+  assert (strstr(logger.log_filename, "log_") != NULL); 
+
+  remove_test_file(logger.log_filename);
+  print_test_passed();
 }
 
 
@@ -93,7 +103,7 @@ void test_logger_stress(bool print_to_console) {
 
 
 int main() {
-  test_logger_illegal_filename();
+  test_logger_too_long_filename();
   test_logger_info();
   test_logger_debug();
   test_logger_stress(false);

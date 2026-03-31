@@ -3,7 +3,7 @@
 
 // increase limit if needed
 #define LOG_FILENAME_MAX_LENGTH 64
-#define LOG_MESSAGE_MAX_LENGTH 256
+#define LOG_MESSAGE_MAX_LENGTH 512
 #define LOG_TIMESTAMP_FORMAT_MAX_LENGTH 32
 // The timestamp format of "[YYYY-MM-DD HH:MM:SS]\t" plus \n and \0 is 24 characters long. 
 // We set the max length to 32 to be safe.
@@ -15,6 +15,11 @@
 #include <string.h>
 
 enum LogLevel {
+/*
+ * Logs an info-level message.
+ * @param logger The logger instance with configured settings.
+ * @param message The message to log.
+ */
   DEBUG,
   INFO
 };
@@ -69,10 +74,20 @@ void generate_log(struct Logger logger, const char message[], enum LogLevel log_
 }
 
 void log_info(struct Logger logger, const char message[]) {
+/*
+ * Logs an info-level message.
+ * @param logger The logger instance with configured settings.
+ * @param message The message to log.
+ */
   generate_log(logger, message, INFO);
 }
 
 void log_debug(struct Logger logger, const char message[]) {
+/*
+ * Logs an debug-level message.
+ * @param logger The logger instance with configured settings.
+ * @param message The message to log.
+ */
   generate_log(logger, message, DEBUG);
 }
 
@@ -94,6 +109,10 @@ struct Logger create_logger(enum LogLevel verbosity,
     fprintf(stderr, "Warning: Logger is configured to neither print to console nor generate log file. No logs will be emitted.\n");
   }
   if (generate_log_file) {
+    if (log_filename != NULL && strlen(log_filename) >= LOG_FILENAME_MAX_LENGTH) {
+      fprintf(stderr, "Warning: Log filename exceeds maximum length. Using default timestamp-based filename instead.\n");
+      log_filename = NULL; // Reset to trigger default filename generation (timestamp)
+    }
     if (log_filename == NULL) {
       // Set to default log filename with timestamp
       time_t now;
