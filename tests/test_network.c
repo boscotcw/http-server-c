@@ -5,7 +5,9 @@
 int main() {
   printf("Test server running on port %d\n", TEST_PORT);
 
-  struct HttpServer *http_server = get_http_server(TEST_PORT);
+  struct HttpServer* http_server = malloc(sizeof (struct HttpServer));
+  init_http_server(http_server, TEST_PORT);
+
   run_http_server(http_server);
 
   return 0;

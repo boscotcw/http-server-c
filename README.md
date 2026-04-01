@@ -66,3 +66,4 @@ These are a collection of C/Linux based notes I found interesting, coming from a
 - Check for any potential memory leaks.
 - Test with 1000+ concurrent clients.
 - Write a nice testing framework to help with the above point.
+- Should we periodically flush a client's buffer so that their invalid messages don't take up space?
