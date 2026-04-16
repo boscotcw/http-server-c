@@ -16,11 +16,6 @@
 #include <string.h>
 
 enum LogLevel {
-/*
- * Logs an info-level message.
- * @param logger The logger instance with configured settings.
- * @param message The message to log.
- */
   DEBUG,
   INFO
 };
@@ -29,6 +24,8 @@ struct Logger {
   bool print_to_console;
   bool generate_log_file;
   char log_filename[LOG_FILENAME_MAX_LENGTH];
+  bool always_flush; 
+  FILE* log_file; // Optional file pointer for more efficient logging if needed in the future
   enum LogLevel verbosity;
 };
 
@@ -36,20 +33,33 @@ int write_log_file(struct Logger* logger, const char log_entry[]) {
   // Writes log entry to a file.
   if (!logger->generate_log_file) return -1; // Double check
 
-  // The slow way: Open the file, write the log entry, and close the file for each message.
-  FILE* log_file = fopen(logger->log_filename, "a");
-  if (log_file == NULL) {
+  if (logger->log_file == NULL) {
+    logger->log_file = fopen(logger->log_filename, "a");
+  }
+  if (logger->log_file == NULL) {
     fprintf(stderr, "Error: Log file is not available.\n");
     return -1;
   }
-  fprintf(log_file, "%s", log_entry);
-  if (ferror(log_file)) {
+  
+  fprintf(logger->log_file, "%s", log_entry);
+  if (ferror(logger->log_file)) {
     fprintf(stderr, "Error: Unable to write to log file.\n");
-    fclose(log_file);
+    fclose(logger->log_file);
+    logger->log_file = NULL;
     return -1;
   }
-  fflush(log_file); // Ensure the log entry is written to the file immediately
-  fclose(log_file);
+  
+  if (logger->always_flush) {
+    int success = fflush(logger->log_file); // Ensure the log entry is written to the file immediately
+    if (success != 0) {
+      fprintf(stderr, "Error: Failed to flush log file.\n");
+      fclose(logger->log_file);
+      logger->log_file = NULL;
+      return -1;
+    }
+  }
+  // fclose(logger->log_file);
+  // fprintf(stdout, "HI: message=%s\n", log_entry);
   return 0;
 }
 
@@ -72,6 +82,7 @@ int generate_log(struct Logger* logger, const char message[], enum LogLevel log_
   snprintf(log_entry, sizeof(log_entry), "[%s]\t%s\n", time_buf, message);
   if (logger->print_to_console) printf("%s", log_entry);
   if (!logger->generate_log_file) return 0;
+
   // Write the log entry to a file
   return write_log_file(logger, log_entry);
 }
@@ -98,6 +109,7 @@ int create_logger(struct Logger* logger,
                   enum LogLevel verbosity, 
                   bool print_to_console,
                   bool generate_log_file, 
+                  bool always_flush,
                   const char* log_filename) {
 /*
  * Creates a Logger with the configured verbosity and file-output behavior.
@@ -108,10 +120,9 @@ int create_logger(struct Logger* logger,
  */
   logger->generate_log_file = generate_log_file;
   logger->print_to_console = print_to_console;
-  if (!logger->print_to_console && !logger->generate_log_file) {
-    fprintf(stderr, "Warning: Logger is configured to neither print to console nor generate log file. No logs will be emitted.\n");
-    return -1;  // Return an error code to indicate misconfiguration
-  }
+  logger->verbosity = verbosity;
+  logger->always_flush = always_flush;
+
   if (generate_log_file) {
     if (log_filename != NULL && strlen(log_filename) >= LOG_FILENAME_MAX_LENGTH) {
       fprintf(stderr, "Warning: Log filename exceeds maximum length. Using default timestamp-based filename instead.\n");
@@ -126,14 +137,29 @@ int create_logger(struct Logger* logger,
     } else {
       snprintf(logger->log_filename, sizeof(logger->log_filename), "%s", log_filename);
     }
+    logger->log_file = fopen(logger->log_filename, "a");
+    if (logger->log_file == NULL) {
+      // Failed log file creation; retry with default timestamp-based filename
+      fprintf(stderr, "Error: failed to create log file.\n");
+      time_t now;
+      time(&now);
+      struct tm* time_info = localtime(&now);
+      strftime(logger->log_filename, sizeof(logger->log_filename), "log_%Y-%m-%d %H%M%S.log", time_info);
+      logger->log_file = fopen(logger->log_filename, "a");
+      if (logger->log_file == NULL) {
+        fprintf(stderr, "Error: failed to create log file with default filename. File output will now be disabled.\n");
+        logger->generate_log_file = false; // Disable file output if we can't create a log file
+      }
+    }
   }
-  FILE* log_file = fopen(logger->log_filename, "a");
-  if (log_file == NULL) {
-    fprintf(stderr, "Error: failed to create log file.\n");
-    return -1;
+  if (!logger->print_to_console && !logger->generate_log_file) {
+    fprintf(stderr, "Warning: Logger is configured to neither print to console nor generate log file. No logs will be emitted.\n");
+    return -1;  // Return an error code to indicate misconfiguration
   }
-  logger->verbosity = verbosity;
-  fclose(log_file);
+  if (always_flush && logger->generate_log_file && logger->log_file) {
+    fclose(logger->log_file);
+    logger->log_file = NULL;
+  }  
   return 0;
 }
 
