@@ -116,6 +116,7 @@ int create_logger(struct Logger* logger,
  * @param verbosity Minimum log level to emit (messages with level >= verbosity are logged).
  * @param print_to_console If true, log entries are printed to the console.
  * @param generate_log_file If true, log entries are appended to a .log file.
+ * @param always_flush If true and generate_log_file is true, the log file is flushed after every write to ensure logs are written immediately.
  * @param log_filename Filename to use when generate_log_file is true; if NULL, a default timestamp-based name is used.
  */
   logger->generate_log_file = generate_log_file;

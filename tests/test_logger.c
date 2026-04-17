@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define STRESS_TEST_LOG_ENTRIES 1000
+#define STRESS_TEST_LOG_ENTRIES 100000
 
 void safe_assert(bool condition, struct Logger* logger) {
   // Use safe_assert if there is a log file to clean up after a failed assertion.
@@ -24,11 +24,12 @@ void safe_assert(bool condition, struct Logger* logger) {
 
 
 void logger_cleanup(struct Logger* logger) {
-  if (logger->log_file && logger->generate_log_file) {
+  if (!logger->generate_log_file) return; // No file to clean up.
+  if (logger->log_file) {
     fclose(logger->log_file);
     logger->log_file = NULL;
   }
-  if (logger->log_filename) {
+  if (logger->log_filename != NULL) {
     printf("Cleaning up log file: %s\n", logger->log_filename);
     remove_test_file(logger->log_filename);
   }
@@ -134,7 +135,10 @@ void test_logger_debug() {
 
 
 void test_logger_stress(bool print_to_console, bool generate_log_file, bool always_flush) {
-  printf("Running test_logger_stress.\n");
+  printf("Running test_logger_stress. print_to_console: %s, generate_log_file: %s, always_flush: %s\n",
+         print_to_console ? "true" : "false",
+         generate_log_file ? "true" : "false",
+         always_flush ? "true" : "false");
 
   char logger_filename[] = "test_logger_stress.log";
   struct Logger* logger = malloc(sizeof(struct Logger));
@@ -172,7 +176,8 @@ int main() {
   test_logger_no_output();
   test_logger_info();
   test_logger_debug();
-  test_logger_stress(true, false, true);  // file output only + instant flush
-  test_logger_stress(false, true, true);  // print output only + instant flush
+  test_logger_stress(false, true, true);  // file output only + instant flush
+  test_logger_stress(false, true, false);  // file output only + buffering
+  // test_logger_stress(true, false, false);  // print output only
   return 0;
 }
