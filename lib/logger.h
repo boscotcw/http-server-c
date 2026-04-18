@@ -24,8 +24,8 @@ struct Logger {
   bool print_to_console;
   bool generate_log_file;
   char log_filename[LOG_FILENAME_MAX_LENGTH];
-  bool always_flush; 
-  FILE* log_file; // Optional file pointer for more efficient logging if needed in the future
+  bool always_flush;
+  FILE* log_file;
   enum LogLevel verbosity;
 };
 
@@ -58,8 +58,6 @@ int write_log_file(struct Logger* logger, const char log_entry[]) {
       return -1;
     }
   }
-  // fclose(logger->log_file);
-  // fprintf(stdout, "HI: message=%s\n", log_entry);
   return 0;
 }
 
@@ -68,7 +66,7 @@ int generate_log(struct Logger* logger, const char message[], enum LogLevel log_
   // Optionally write the log entry to a file if logger is configured to do so. 
   if (!logger) return -1;
   if (log_level < logger->verbosity) return 0; // Skip log entries below the configured verbosity level
-  if (strlen(message) > LOG_MESSAGE_MAX_LENGTH) {
+  if (strnlen(message, LOG_MESSAGE_MAX_LENGTH + 1) > LOG_MESSAGE_MAX_LENGTH) {
     fprintf(stderr, "Warning: Log message exceeds maximum length.\n");
     return -1;
   }
@@ -123,9 +121,10 @@ int create_logger(struct Logger* logger,
   logger->print_to_console = print_to_console;
   logger->verbosity = verbosity;
   logger->always_flush = always_flush;
+  logger->log_file = NULL;
 
   if (generate_log_file) {
-    if (log_filename != NULL && strlen(log_filename) >= LOG_FILENAME_MAX_LENGTH) {
+    if (log_filename != NULL && strnlen(log_filename, LOG_FILENAME_MAX_LENGTH + 1) >= LOG_FILENAME_MAX_LENGTH) {
       fprintf(stderr, "Warning: Log filename exceeds maximum length. Using default timestamp-based filename instead.\n");
       log_filename = NULL; // Reset to trigger default filename generation (timestamp)
     }
@@ -166,6 +165,10 @@ int create_logger(struct Logger* logger,
 
 int free_logger(struct Logger* logger) {
   // Free any resources associated with the logger if needed.
+  if (logger->log_file) {
+    fclose(logger->log_file); // Close log file if it's still open
+    logger->log_file = NULL;
+  }
   if (logger) {
     free(logger);
   }

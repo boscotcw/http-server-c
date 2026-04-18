@@ -23,16 +23,17 @@ void safe_assert(bool condition, struct Logger* logger) {
 }
 
 
-void logger_cleanup(struct Logger* logger) {
-  if (!logger->generate_log_file) return; // No file to clean up.
-  if (logger->log_file) {
+void logger_test_cleanup(struct Logger* logger) {
+  if (logger->log_file != NULL) {
+    // Close the log file if it's still open before further removal attempts.
     fclose(logger->log_file);
     logger->log_file = NULL;
   }
-  if (logger->log_filename != NULL) {
+  if (logger->generate_log_file && logger->log_filename != NULL) {
     printf("Cleaning up log file: %s\n", logger->log_filename);
     remove_test_file(logger->log_filename);
   }
+  free_logger(logger);
 }
 
 
@@ -46,8 +47,7 @@ void test_logger_too_long_filename() {
   int success = create_logger(logger, INFO, true, true, true, too_long_filename);
   // logger should return success but use fallback timestamp filename.
   safe_assert(success == 0 && strstr(logger->log_filename, "log_") != NULL, logger); 
-  logger_cleanup(logger);
-  free_logger(logger);
+  logger_test_cleanup(logger);
 
   print_test_passed();
 }
@@ -61,8 +61,7 @@ void test_logger_invalid_filename() {
   int success = create_logger(logger, INFO, true, true, true, invalid_filename);
   // logger should return success but use fallback timestamp filename.
   safe_assert(success == 0 && strstr(logger->log_filename, "log_") != NULL, logger); 
-  logger_cleanup(logger);
-  free_logger(logger);
+  logger_test_cleanup(logger);
   
   print_test_passed();
 }
@@ -75,8 +74,7 @@ void test_logger_no_output() {
   int success = create_logger(logger, INFO, false, false, true, NULL);
   // logger should return an error code due to misconfiguration.
   safe_assert(success == -1, logger);
-  logger_cleanup(logger);
-  free_logger(logger);
+  logger_test_cleanup(logger);
   
   print_test_passed();
 }
@@ -100,8 +98,7 @@ void test_logger_info() {
   safe_assert(buffer != NULL && strstr(buffer, "This is an info message") != NULL, logger_info);
   safe_assert(fgets(buffer, sizeof(buffer), file_info) == NULL, logger_info); // No more log entries should be present.
   fclose(file_info);
-  logger_cleanup(logger_info);
-  free_logger(logger_info);
+  logger_test_cleanup(logger_info);
 
   print_test_passed();
 }
@@ -127,8 +124,7 @@ void test_logger_debug() {
   safe_assert(buffer != NULL && strstr(buffer, "This is a debug message") != NULL, logger_debug);
   safe_assert(fgets(buffer, sizeof(buffer), file_debug) == NULL, logger_debug); // No more log entries should be present.
   fclose(file_debug);
-  logger_cleanup(logger_debug);
-  free_logger(logger_debug);
+  logger_test_cleanup(logger_debug);
 
   print_test_passed();
 }
@@ -158,14 +154,14 @@ void test_logger_stress(bool print_to_console, bool generate_log_file, bool alwa
   double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
   printf("Completed logger stress time. Took %.2f ms to print %d log entries.\n", 
          elapsed_time * 1000 , STRESS_TEST_LOG_ENTRIES);
-  logger_cleanup(logger);
-  free_logger(logger);
+  logger_test_cleanup(logger);
 
   print_test_passed();
 }
 
 
 void test_logger_flush() {
+  // See if we need a test for this or if we can just verify it works in the stress test.
   return;
 }
 
